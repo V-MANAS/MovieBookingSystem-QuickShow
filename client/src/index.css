@@ -4,31 +4,98 @@
 @theme {
   --color-primary: #F84565;
   --color-primary-dull: #D63854;
+  --color-dark-bg: #09090B;
+  --color-card-bg: #121216;
 }
 
 * {
   font-family: "Outfit", sans-serif;
   scrollbar-width: thin;
-  scrollbar-color: #787777 #1e1e1e;
+  scrollbar-color: rgba(248, 69, 101, 0.3) #09090B;
 }
 
 /* Chrome / Edge scrollbar */
 *::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 *::-webkit-scrollbar-track {
-  background: #1e1e1e;
+  background: #09090B;
 }
 
 *::-webkit-scrollbar-thumb {
-  background-color: #787777;
-  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #F84565;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  color: white;
+  color: #F3F4F6;
   background-color: #09090B;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Glassmorphism utility classes */
+.glass-panel {
+  background: rgba(18, 18, 22, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.glass-card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card-hover:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(248, 69, 101, 0.3);
+  box-shadow: 0 10px 30px -10px rgba(248, 69, 101, 0.15);
+}
+
+.glow-primary {
+  box-shadow: 0 0 20px -3px rgba(248, 69, 101, 0.4);
+}
+
+.glow-primary-lg {
+  box-shadow: 0 0 35px -5px rgba(248, 69, 101, 0.5);
+}
+
+/* Shimmer animation for skeletons */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.08) 37%,
+    rgba(255, 255, 255, 0.03) 63%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite ease-in-out;
 }
 
 .no-scrollbar {
@@ -45,7 +112,9 @@ input::-webkit-inner-spin-button {
   margin: 0;
 }
 
-/* Date & time picker icon */
+/* Date & time picker indicator */
 ::-webkit-calendar-picker-indicator {
   filter: invert(1);
+  cursor: pointer;
 }
+

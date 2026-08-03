@@ -5,11 +5,11 @@ import TrailerSection from '../components/TrailerSection'
 
 const Home = () => {
   return (
-    <>
-      <HeroSection/>
-      <FeaturesSection/>
-      <TrailerSection/>
-    </>
+    <main className="min-h-screen bg-[#09090B] overflow-hidden">
+      <HeroSection />
+      <FeaturesSection />
+      <TrailerSection />
+    </main>
   )
 }
 

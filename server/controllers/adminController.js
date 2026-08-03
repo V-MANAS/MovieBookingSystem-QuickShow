@@ -28,9 +28,8 @@ export const getDashboardData = async (req, res) => {
     const bookings = await Booking.find({ isPaid: true });
 
    const activeShows = await Show.find({
-  showDateTime: { $gte: new Date() },
   movie: { $ne: null }        
-}).populate("movie");
+}).populate("movie").limit(10);
 
 
     const totalRevenue = bookings.reduce(
@@ -61,11 +60,10 @@ export const getDashboardData = async (req, res) => {
 export const getAllShows = async (req, res) => {
   try {
     const shows = await Show.find({
-      showDateTime: { $gte: new Date() },
       movie: { $ne: null }  
     })
       .populate("movie")
-      .sort({ showDateTime: 1 });
+      .sort({ showDateTime: -1 });
 
     res.json({ success: true, shows });
 

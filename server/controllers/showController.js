@@ -3,24 +3,17 @@ import Movie from "../models/Movie.js";
 import Show from "../models/Show.js";
 import { err } from "inngest/types";
 
-// get now playing movies
-// export const getNowPlayingMovies = async (req, res) => {
-//   try {
-//     const { data } = await axios.get(
-//       "https://api.themoviedb.org/3/movie/now_playing",
-//       {
-//         headers: {
-//           Authorization: `Bearer ${process.env.TMDB_API_KEY}`,
-//         },
-//       }
-//     );
+// get now playing movies (recent releases from database)
+export const getNowPlayingMovies = async (req, res) => {
+  try {
+    const movies = await Movie.find({}).sort({ createdAt: -1 }).limit(20);
+    res.json({ success: true, movies });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
-//     res.json({ success: true, movies: data.results });
-//   } catch (error) {
-//     console.error(error);
-//     res.json({ success: false, message: error.message });
-//   }
-// };
 
 // add show
 export const addShow = async (req, res) => {
@@ -37,36 +30,37 @@ export const addShow = async (req, res) => {
     if (!movie) {
       try {
         const movieRes = await axios.get(
-          `https://api.themoviedb.org/3/movie/${movieId}`,
+          `https://www.omdbapi.com/?apikey=${process.env.OMDB_API_KEY}&i=${movieId}&plot=full`,
           {
-            headers: {
-              Authorization: `Bearer ${process.env.TMDB_API_KEY}`,
-            },
             timeout: 15000,
           }
         );
 
         const movieData = movieRes.data;
+        if (movieData.Response === "False") {
+          throw new Error("Movie not found in OMDb");
+        }
 
         movie = await Movie.create({
           _id: movieId,
-          title: movieData.title,
-          overview: movieData.overview,
-          poster_path: movieData.poster_path,
-          backdrop_path: movieData.backdrop_path,
-          genres: movieData.genres,
-          release_date: movieData.release_date,
-          original_language: movieData.original_language,
-          tagline: movieData.tagline || "",
-          vote_average: movieData.vote_average,
-          runtime: movieData.runtime,
+          title: movieData.Title,
+          overview: movieData.Plot,
+          poster_path: movieData.Poster !== "N/A" ? movieData.Poster : "",
+          backdrop_path: movieData.Poster !== "N/A" ? movieData.Poster : "",
+          genres: movieData.Genre ? movieData.Genre.split(', ').map(g => ({ name: g })) : [],
+          release_date: movieData.Released !== "N/A" ? movieData.Released : "Unknown",
+          original_language: movieData.Language,
+          tagline: "",
+          vote_average: parseFloat(movieData.imdbRating) || 0,
+          runtime: parseInt(movieData.Runtime) || 120,
+          casts: movieData.Actors ? movieData.Actors.split(', ').map(a => ({ name: a, character: "", profile_path: "" })) : []
         });
 
-      } catch (tmdbError) {
-        console.error("TMDB fetch failed:", tmdbError.message);
+      } catch (omdbError) {
+        console.error("OMDb fetch failed:", omdbError.message);
         return res.status(500).json({
           success: false,
-          message: "Failed to fetch movie data from TMDB. Turn ON VPN.",
+          message: "Failed to fetch movie data from OMDb.",
         });
       }
     }
@@ -100,18 +94,19 @@ export const addShow = async (req, res) => {
 
 
 //api to    get all show from db
-export const getShows = async(req,res)=>{
-    try{
-        const show = await Show.find({showDateTime:{$gte:new Date()}}).populate('movie').sort({showDateTime:1});
+export const getShows = async (req, res) => {
+  try {
+    // Fetch all shows (removed date filter for testing older data)
+    const show = await Show.find({}).populate('movie').sort({ showDateTime: 1 });
 
-        //filter unique shows
-        const uniqueShows = new Set(show.map(show=> show.movie))
+    //filter unique shows
+    const uniqueShows = new Set(show.map(show => show.movie))
 
-        res.json({success:true,shows:Array.from(uniqueShows)})
-    }catch(error){
-        console.error(error);
-        res.json({success:false, message:error.message});
-    }
+    res.json({ success: true, shows: Array.from(uniqueShows) })
+  } catch (error) {
+    console.error(error);
+    res.json({ success: false, message: error.message });
+  }
 }
 
 //api to single show fromdb
@@ -125,8 +120,8 @@ export const getShow = async (req, res) => {
     }
 
     const shows = await Show.find({
-      movie: movieId,
-      showDateTime: { $gte: new Date() }
+      movie: movieId
+      // showDateTime: { $gte: new Date() } // Removed filter for testing older data
     });
 
     const dateTime = {};
@@ -139,8 +134,44 @@ export const getShow = async (req, res) => {
       });
     });
 
-    res.json({ success: true, movie, dateTime });
+    // If no cast stored, fetch from OMDb and persist to DB
+    let casts = movie.casts || [];
+    if (casts.length === 0 && movieId) {
+      try {
+        const omdbRes = await axios.get(
+          `https://www.omdbapi.com/?apikey=${process.env.OMDB_API_KEY}&i=${movieId}&plot=full`,
+          { timeout: 8000 }
+        );
+        const omdbData = omdbRes.data;
+        if (omdbData.Response !== "False" && omdbData.Actors) {
+          casts = omdbData.Actors.split(', ').map(a => ({
+            name: a,
+            character: "",
+            profile_path: ""
+          }));
+          // Save back to DB so next request is fast
+          movie.casts = casts;
+          await movie.save();
+        }
+      } catch (omdbErr) {
+        console.warn("OMDb cast fetch failed:", omdbErr.message);
+      }
+    }
 
+    res.json({ success: true, movie, dateTime, casts });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+export const getAllMovies = async (req, res) => {
+  try {
+    const movies = await Movie.find({}).sort({ createdAt: -1 });
+    console.log(movies);
+    res.json({ success: true, movies, shows: movies });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: error.message });

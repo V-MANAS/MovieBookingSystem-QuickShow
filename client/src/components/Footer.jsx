@@ -1,43 +1,78 @@
 import React from 'react'
-import { assets } from '../assets/assets';
+import { assets } from '../assets/assets'
+import { Link } from 'react-router-dom'
+import { Film, Heart, Shield, Mail, Phone, MapPin } from 'lucide-react'
+
 const Footer = () => {
-    return (
-        <footer className="px-6 mt-40 md:px-16 lg:px-36 w-full text-gray-300">
-            <div className="flex flex-col md:flex-row justify-between w-full gap-10 border-b border-gray-500 pb-14">
-                <div className="md:max-w-96">
-                    <img alt="logo" className="h-11" src={assets.logo}  />
-                    <p className="mt-6 text-sm">
-                          Lorem ipsum dolor sit amet consectetur, adipisicing elit. Praesentium inventore magnam laudantium sapiente perferendis accusantium nesciunt repellendus, facere odio. Hic accusantium eum, in numquam unde ex deserunt asperiores perferendis facilis.         
-                    </p>
-                    <div className="flex items-center gap-2 mt-4">
-                        <img src={assets.googlePlay} alt="google play" className="h-9 w-auto " />
-                        <img src={assets.appStore} className="h-9 w-auto " />
-                    </div>
-                </div>
-                <div className="flex-1 flex items-start md:justify-end gap-20 md:gap-40">
-                    <div>
-                        <h2 className="font-semibold mb-5">Company</h2>
-                        <ul className="text-sm space-y-2">
-                            <li><a href="#">Home</a></li>
-                            <li><a href="#">About us</a></li>
-                            <li><a href="#">Contact us</a></li>
-                            <li><a href="#">Privacy policy</a></li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h2 className="font-semibold mb-5">Get in touch</h2>
-                        <div className="text-sm space-y-2">
-                            <p>+1-234-567-890</p>
-                            <p>contact@example.com</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <p className="pt-4 text-center text-sm pb-5">
-                Copyright {new Date().getFullYear()} © <a href="https://prebuiltui.com">PrebuiltUI</a>. All Right Reserved.
+  return (
+    <footer className="relative mt-20 pt-16 pb-8 border-t border-white/10 bg-[#060608] text-gray-400">
+      <div className="max-w-7xl mx-auto px-6 md:px-16 lg:px-24 xl:px-36">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 pb-12 border-b border-white/10">
+          {/* Brand Info */}
+          <div className="md:col-span-5 flex flex-col items-start gap-4">
+            <Link to="/" onClick={() => window.scrollTo(0, 0)}>
+              <img alt="QuickShow Logo" className="h-9 w-auto" src={assets.logo} />
+            </Link>
+            <p className="text-xs sm:text-sm text-gray-400 leading-relaxed max-w-sm">
+              QuickShow is your ultimate destination for instant movie ticket bookings, trailer premieres, and cinema experiences. Seamlessly reserve seats in top theaters near you.
             </p>
-        </footer>
-    )
+            <div className="flex items-center gap-3 mt-2">
+              <img src={assets.googlePlay} alt="Google Play Store" className="h-9 w-auto hover:opacity-80 transition cursor-pointer" />
+              <img src={assets.appStore} alt="Apple App Store" className="h-9 w-auto hover:opacity-80 transition cursor-pointer" />
+            </div>
+          </div>
+
+          {/* Quick Navigation Links */}
+          <div className="md:col-span-3">
+            <h4 className="text-white font-semibold text-sm tracking-wider uppercase mb-4">Quick Links</h4>
+            <ul className="space-y-2.5 text-xs sm:text-sm">
+              <li>
+                <Link to="/" onClick={() => window.scrollTo(0, 0)} className="hover:text-primary transition">Home</Link>
+              </li>
+              <li>
+                <Link to="/movies" onClick={() => window.scrollTo(0, 0)} className="hover:text-primary transition">Movies</Link>
+              </li>
+              <li>
+                <Link to="/releases" onClick={() => window.scrollTo(0, 0)} className="hover:text-primary transition">Releases</Link>
+              </li>
+              <li>
+                <Link to="/favorite" onClick={() => window.scrollTo(0, 0)} className="hover:text-primary transition">Favorites</Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Contact Info */}
+          <div className="md:col-span-4">
+            <h4 className="text-white font-semibold text-sm tracking-wider uppercase mb-4">Get In Touch</h4>
+            <div className="space-y-3 text-xs sm:text-sm">
+              <div className="flex items-center gap-2.5">
+                <Phone className="w-4 h-4 text-primary shrink-0" />
+                <span>+1 (800) 234-5678</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Mail className="w-4 h-4 text-primary shrink-0" />
+                <span>support@quickshow.com</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <MapPin className="w-4 h-4 text-primary shrink-0" />
+                <span>Los Angeles, CA & Mumbai, MH</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Copyright Strip */}
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-400 gap-4">
+          <p>© {new Date().getFullYear()} QuickShow Inc. All Rights Reserved.</p>
+          <div className="flex items-center gap-6">
+            <a href="#" className="hover:text-gray-300 transition">Privacy Policy</a>
+            <a href="#" className="hover:text-gray-300 transition">Terms of Service</a>
+            <a href="#" className="hover:text-gray-300 transition">Cookie Settings</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  )
 }
 
-export default Footer;
+export default Footer
