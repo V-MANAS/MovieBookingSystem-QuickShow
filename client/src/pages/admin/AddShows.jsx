@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Star, Check, Trash2, Search, Plus, Calendar, DollarSign, Film } from 'lucide-react'
+import { Star, Check, Trash2, Search, Plus, Calendar, DollarSign, Film, Video } from 'lucide-react'
 import Title from '../../components/admin/Title'
 import { useAppContext } from '../../context/AppContext'
 import toast from 'react-hot-toast'
@@ -14,6 +14,7 @@ const AddShows = () => {
   const [dateTimeSelection, setDateTimeSelection] = useState({})
   const [dateTimeInput, setDateTimeInput] = useState('')
   const [showPrice, setShowPrice] = useState('')
+  const [trailerUrl, setTrailerUrl] = useState('')
   const [addingShow, setAddingShow] = useState(false)
 
   const searchMovies = async (query) => {
@@ -86,6 +87,7 @@ const AddShows = () => {
         movieId: selectedMovie,
         showsInput,
         showPrice: Number(showPrice),
+        trailerUrl: trailerUrl.trim(),
       }
 
       const { data } = await axios.post('/api/show/add', payload, {
@@ -99,6 +101,7 @@ const AddShows = () => {
         setSelectedMovie(null)
         setDateTimeSelection({})
         setShowPrice('')
+        setTrailerUrl('')
       } else {
         toast.error(data.message)
       }
@@ -181,12 +184,29 @@ const AddShows = () => {
         )}
       </div>
 
+      {/* Trailer URL Field */}
+      <div className="bg-white/[0.03] border border-white/10 p-6 rounded-3xl backdrop-blur-xl">
+        <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">
+          2. YouTube Trailer URL
+        </label>
+        <div className="flex items-center gap-2 border border-white/10 bg-white/[0.05] px-4 py-2.5 rounded-xl">
+          <Video className="w-4 h-4 text-primary shrink-0" />
+          <input
+            type="url"
+            value={trailerUrl}
+            onChange={(e) => setTrailerUrl(e.target.value)}
+            placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ or https://youtu.be/..."
+            className="bg-transparent outline-none text-white text-sm font-medium w-full placeholder-gray-400"
+          />
+        </div>
+      </div>
+
       {/* Price & DateTime Configuration */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Price Input */}
         <div className="bg-white/[0.03] border border-white/10 p-6 rounded-3xl backdrop-blur-xl">
           <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">
-            2. Ticket Price ({currency})
+            3. Ticket Price ({currency})
           </label>
           <div className="flex items-center gap-2 border border-white/10 bg-white/[0.05] px-4 py-2.5 rounded-xl">
             <span className="text-gray-400 text-sm font-bold">{currency}</span>
@@ -204,7 +224,7 @@ const AddShows = () => {
         {/* Date Time Picker */}
         <div className="bg-white/[0.03] border border-white/10 p-6 rounded-3xl backdrop-blur-xl">
           <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">
-            3. Add Date & Showtime
+            4. Add Date & Showtime
           </label>
           <div className="flex items-center gap-3">
             <input

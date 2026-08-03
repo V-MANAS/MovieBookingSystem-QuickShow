@@ -1,4 +1,4 @@
-import mongoose, { mongo } from "mongoose";
+import mongoose from "mongoose";
 
 const movieSchema = new mongoose.Schema(
     {
@@ -14,11 +14,11 @@ const movieSchema = new mongoose.Schema(
         casts: { type: Array, required: true },
         vote_average: { type: Number, required: true },
         runtime: { type: Number, required: true },
+        trailerUrl: { type: String },
     },
     { timestamps: true }
 )
 
 const Movie = mongoose.model('Movie', movieSchema)
-
 
 export default Movie;

@@ -1,5 +1,6 @@
 import Booking from "../models/Booking.js";
 import Show from "../models/Show.js";
+import Movie from "../models/Movie.js";
 import { clerkClient } from "@clerk/express";
 
 // ✅ Check if user is admin
@@ -22,17 +23,19 @@ export const isAdmin = async (req, res) => {
   }
 };
 
-// ✅ Dashboard data
+// ✅ Dashboard data with real counts
 export const getDashboardData = async (req, res) => {
   try {
-    const bookings = await Booking.find({ isPaid: true });
+    const totalMovies = await Movie.countDocuments({});
+    const totalShows = await Show.countDocuments({ movie: { $ne: null } });
+    const totalBookings = await Booking.countDocuments({});
+    const paidBookings = await Booking.find({ isPaid: true });
 
-   const activeShows = await Show.find({
-  movie: { $ne: null }        
-}).populate("movie").limit(10);
+    const activeShows = await Show.find({
+      movie: { $ne: null }
+    }).populate("movie").limit(10);
 
-
-    const totalRevenue = bookings.reduce(
+    const totalRevenue = paidBookings.reduce(
       (acc, booking) => acc + (booking.amount || 0),
       0
     );
@@ -40,10 +43,11 @@ export const getDashboardData = async (req, res) => {
     res.json({
       success: true,
       dashboardData: {
-        totalBookings: bookings.length,
-        activeShows: activeShows,
+        totalMovies,
+        totalShows,
+        totalBookings,
         totalRevenue,
-        totalUser: bookings.length
+        activeShows,
       }
     });
 
@@ -60,7 +64,7 @@ export const getDashboardData = async (req, res) => {
 export const getAllShows = async (req, res) => {
   try {
     const shows = await Show.find({
-      movie: { $ne: null }  
+      movie: { $ne: null }
     })
       .populate("movie")
       .sort({ showDateTime: -1 });
@@ -82,12 +86,51 @@ export const getAllBookings = async (req, res) => {
         path: "show",
         populate: { path: "movie" }
       })
-      .sort({ created: -1 });
+      .sort({ createdAt: -1 });
 
     res.json({ success: true, bookings });
 
   } catch (error) {
     console.error("Get Bookings Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ✅ Delete movie
+export const deleteMovie = async (req, res) => {
+  try {
+    const { movieId } = req.params;
+    await Movie.findByIdAndDelete(movieId);
+    await Show.deleteMany({ movie: movieId });
+    res.json({ success: true, message: "Movie and associated shows deleted" });
+  } catch (error) {
+    console.error("Delete Movie Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ✅ Update movie
+export const updateMovie = async (req, res) => {
+  try {
+    const { movieId } = req.params;
+    const { title, overview, poster_path, trailerUrl, vote_average, runtime } = req.body;
+
+    const movie = await Movie.findById(movieId);
+    if (!movie) {
+      return res.status(404).json({ success: false, message: "Movie not found" });
+    }
+
+    if (title) movie.title = title;
+    if (overview) movie.overview = overview;
+    if (poster_path) movie.poster_path = poster_path;
+    if (trailerUrl !== undefined) movie.trailerUrl = trailerUrl;
+    if (vote_average !== undefined) movie.vote_average = vote_average;
+    if (runtime !== undefined) movie.runtime = runtime;
+
+    await movie.save();
+    res.json({ success: true, message: "Movie updated successfully", movie });
+  } catch (error) {
+    console.error("Update Movie Error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

@@ -1,8 +1,9 @@
 import { clerkClient } from "@clerk/express";
 import Booking from "../models/Booking.js";
 import Movie from "../models/Movie.js";
+import Stripe from "stripe";
 
-// Get user bookings
+// Get user bookings with automatic Stripe payment verification
 export const getUserBookings = async (req, res) => {
   try {
     const userId = req.auth().userId;   // Clerk user ID
@@ -13,6 +14,31 @@ export const getUserBookings = async (req, res) => {
         populate: { path: "movie" },
       })
       .sort({ createdAt: -1 });   // ✅ correct key
+
+    // Auto-verify payment status with Stripe for any pending bookings
+    if (process.env.STRIPE_SECRET_KEY) {
+      const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY);
+      await Promise.all(
+        bookings.map(async (b) => {
+          if (!b.isPaid && b.paymentLink) {
+            try {
+              const urlObj = new URL(b.paymentLink);
+              const pathParts = urlObj.pathname.split('/');
+              const sessionId = pathParts[pathParts.length - 1]?.split('#')[0];
+              if (sessionId && sessionId.startsWith('cs_')) {
+                const session = await stripeInstance.checkout.sessions.retrieve(sessionId);
+                if (session.payment_status === 'paid') {
+                  b.isPaid = true;
+                  await b.save();
+                }
+              }
+            } catch (e) {
+              // Ignore single item Stripe retrieval errors
+            }
+          }
+        })
+      );
+    }
 
     res.json({ success: true, bookings });
   } catch (error) {

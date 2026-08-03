@@ -4,7 +4,9 @@ import {
   getAllBookings,
   getAllShows,
   getDashboardData,
-  isAdmin
+  isAdmin,
+  deleteMovie,
+  updateMovie
 } from "../controllers/adminController.js";
 
 const adminRouter = express.Router();
@@ -16,5 +18,7 @@ adminRouter.get("/is-admin", isAdmin);
 adminRouter.get("/dashboard", getDashboardData);
 adminRouter.get("/all-shows", getAllShows);
 adminRouter.get("/all-bookings", getAllBookings);
+adminRouter.delete("/delete-movie/:movieId", deleteMovie);
+adminRouter.put("/update-movie/:movieId", updateMovie);
 
 export default adminRouter;

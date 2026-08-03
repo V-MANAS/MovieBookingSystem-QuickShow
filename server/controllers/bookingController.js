@@ -109,7 +109,7 @@ export const checkSeatAvailability = async (showId, selectedSeats) => {
 export const createBooking = asyncHandler(async (req, res) => {
   const { userId } = req.auth()
   const { showId, selectedSeats } = req.body
-  const { origin } = req.headers
+  const clientOrigin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : null) || process.env.FRONTEND_URL || 'http://localhost:5174'
 
   logger.info('CREATE_BOOKING', `Booking request initiated by user ${userId}`, { showId, selectedSeats })
 
@@ -133,7 +133,19 @@ export const createBooking = asyncHandler(async (req, res) => {
     })
   }
 
-  // 3. Atomic Seat Allocation (Concurrency Protection)
+  // 3. Check price minimum threshold (Stripe requires equivalent of ~50 cents USD / ₹50 INR)
+  const seatPrice = parseFloat(existingShow.showPrice) || 0
+  const totalAmount = seatPrice * selectedSeats.length
+
+  if (totalAmount < 50) {
+    logger.warn('CREATE_BOOKING_MIN_AMOUNT', `Total booking amount ₹${totalAmount} is below Stripe minimum threshold of ₹50`, { userId, showId })
+    return res.status(400).json({
+      success: false,
+      message: `Total booking amount (₹${totalAmount}) is below the Stripe minimum payment requirement of ₹50. Please select more seats.`,
+    })
+  }
+
+  // 4. Atomic Seat Allocation (Concurrency Protection)
   const updatedShow = await reserveSeatsAtomic(showId, selectedSeats, userId)
 
   if (!updatedShow) {
@@ -146,33 +158,39 @@ export const createBooking = asyncHandler(async (req, res) => {
 
   let booking
   try {
-    // 4. Create booking document in database
-    const seatPrice = parseFloat(existingShow.showPrice) || 0
+    // 5. Create booking document in database
     booking = await Booking.create({
       user: userId,
       show: showId,
-      amount: seatPrice * selectedSeats.length,
+      amount: totalAmount,
       bookedSeats: selectedSeats,
     })
 
-    // 5. Initialize Stripe Checkout Session
+    // 6. Initialize Stripe Checkout Session
     const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY)
+    
+    const movieTitle = existingShow.movie?.title || 'Movie'
+    const ticketCount = selectedSeats.length
+    const seatsString = selectedSeats.join(', ')
+    const descriptionText = `${movieTitle} • ${ticketCount} ${ticketCount === 1 ? 'Ticket' : 'Tickets'} (Seats: ${seatsString})`
+
     const line_items = [
       {
         price_data: {
-          currency: 'usd',
+          currency: 'inr',
           product_data: {
-            name: existingShow.movie?.title ? `${existingShow.movie.title} Movie Ticket` : 'Movie Ticket',
+            name: 'QuickShow Movie Ticket',
+            description: descriptionText,
           },
-          unit_amount: Math.floor(seatPrice * selectedSeats.length * 100),
+          unit_amount: Math.floor(totalAmount * 100),
         },
         quantity: 1,
       },
     ]
 
     const session = await stripeInstance.checkout.sessions.create({
-      success_url: `${origin}/loading/my-bookings?session_id={CHECKOUT_SESSION_ID}&bookingId=${booking._id}`,
-      cancel_url: `${origin}/my-bookings`,
+      success_url: `${clientOrigin}/loading/booking-success?session_id={CHECKOUT_SESSION_ID}&bookingId=${booking._id}`,
+      cancel_url: `${clientOrigin}/my-bookings`,
       line_items: line_items,
       mode: 'payment',
       metadata: {
@@ -192,7 +210,7 @@ export const createBooking = asyncHandler(async (req, res) => {
       booking,
     })
   } catch (error) {
-    // 6. Rollback atomic seat reservation if Stripe or Booking creation fails
+    // 7. Rollback atomic seat reservation if Stripe or Booking creation fails
     logger.error('CREATE_BOOKING_FAILURE', `Error during booking creation. Rolling back reserved seats.`, error)
     await rollbackReservedSeats(showId, selectedSeats)
 
@@ -200,9 +218,15 @@ export const createBooking = asyncHandler(async (req, res) => {
       await Booking.findByIdAndDelete(booking._id).catch(() => {})
     }
 
-    return res.status(500).json({
+    const isMinAmountError = error.message && error.message.includes('50 cents')
+    const statusCode = isMinAmountError ? 400 : 500
+    const friendlyMessage = isMinAmountError
+      ? 'Total booking amount must be at least ₹50 to process payment through Stripe.'
+      : (error.message || 'Failed to process booking transaction')
+
+    return res.status(statusCode).json({
       success: false,
-      message: error.message || 'Failed to process booking transaction',
+      message: friendlyMessage,
     })
   }
 })

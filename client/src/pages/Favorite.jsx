@@ -1,12 +1,35 @@
 import React from 'react'
+import { useUser, useClerk } from '@clerk/clerk-react'
 import MovieCard from '../components/MovieCard'
 import BlurCircle from '../components/BlurCircle'
 import EmptyState from '../components/EmptyState'
+import { MovieGridSkeleton } from '../components/Skeleton'
 import { useAppContext } from '../context/AppContext'
-import { Heart, Sparkles } from 'lucide-react'
+import { Heart, Lock } from 'lucide-react'
 
 const Favorite = () => {
   const { favoriteMovies } = useAppContext()
+  const { user, isLoaded } = useUser()
+  const { openSignIn } = useClerk()
+
+  if (!isLoaded) {
+    return <MovieGridSkeleton count={4} />
+  }
+
+  // Guidance for unauthenticated users
+  if (!user) {
+    return (
+      <main className="relative pt-28 pb-20 px-6 md:px-16 lg:px-24 min-h-[80vh] max-w-4xl mx-auto flex items-center justify-center">
+        <EmptyState
+          icon={Lock}
+          title="Sign In Required"
+          description="Please sign in to access and manage your personal favorite movies watchlist."
+          actionText="Sign In"
+          onAction={openSignIn}
+        />
+      </main>
+    )
+  }
 
   return (
     <main className="relative pt-28 pb-20 px-6 md:px-16 lg:px-24 xl:px-36 overflow-hidden min-h-[85vh] max-w-7xl mx-auto">

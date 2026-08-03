@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { assets } from '../assets/assets'
-import { Menu, Search, TicketPlus, X, Heart, Film, Clapperboard, Sparkles } from 'lucide-react'
+import { Menu, Search, TicketPlus, X, Heart, Film, Clapperboard, Sparkles, Shield } from 'lucide-react'
 import { useClerk, UserButton, useUser } from '@clerk/clerk-react'
 import { useAppContext } from '../context/AppContext'
 import SearchModal from './SearchModal'
@@ -15,7 +15,7 @@ const Navbar = () => {
   const { openSignIn } = useClerk()
   const navigate = useNavigate()
   const location = useLocation()
-  const { favoriteMovies } = useAppContext()
+  const { favoriteMovies, isAdmin } = useAppContext()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -35,7 +35,7 @@ const Navbar = () => {
     { name: 'Releases', path: '/releases' },
     ...(favoriteMovies && favoriteMovies.length > 0
       ? [{ name: 'Favorites', path: '/favorite', badge: favoriteMovies.length }]
-      : [])
+      : []),
   ]
 
   const isActiveRoute = (path) => {
@@ -66,7 +66,7 @@ const Navbar = () => {
             />
           </Link>
 
-          {/* Desktop Navigation Navigation Pill */}
+          {/* Desktop Navigation Pill */}
           <nav className="hidden md:flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/[0.06] border border-white/10 backdrop-blur-md shadow-inner">
             {navLinks.map((link) => {
               const active = isActiveRoute(link.path)
@@ -132,6 +132,13 @@ const Navbar = () => {
                       labelIcon={<TicketPlus width={16} className="text-primary" />}
                       onClick={() => navigate('/my-bookings')}
                     />
+                    {isAdmin && (
+                      <UserButton.Action
+                        label="Admin Panel"
+                        labelIcon={<Shield width={16} className="text-primary" />}
+                        onClick={() => navigate('/admin')}
+                      />
+                    )}
                   </UserButton.MenuItems>
                 </UserButton>
               </div>

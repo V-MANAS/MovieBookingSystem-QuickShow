@@ -2,17 +2,25 @@ import React, { useEffect, useState } from 'react'
 import { TableSkeleton } from '../../components/Skeleton'
 import Title from '../../components/admin/Title'
 import { useAppContext } from '../../context/AppContext'
-import { Film, Calendar, Ticket, DollarSign } from 'lucide-react'
+import { formatPrice } from '../../lib/formatPrice'
+import { Film, Calendar, Ticket, Trash2 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 const ListShows = () => {
   const { axios, getToken, user } = useAppContext()
-  const currency = import.meta.env.VITE_CURRENCY
 
   const [shows, setShows] = useState([])
   const [loading, setLoading] = useState(true)
 
   const dateFormat = (isoString) => {
-    return new Date(isoString).toLocaleString()
+    if (!isoString) return 'N/A'
+    return new Date(isoString).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
   }
 
   const getAllShows = async () => {
@@ -32,6 +40,27 @@ const ListShows = () => {
     }
   }
 
+  const handleDeleteShow = async (showId) => {
+    if (!window.confirm('Are you sure you want to delete this show time slot?')) return
+
+    try {
+      const token = await getToken()
+      const { data } = await axios.delete(`/api/show/delete/${showId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+
+      if (data.success) {
+        toast.success('Show deleted successfully!')
+        setShows(prev => prev.filter(s => s._id !== showId))
+      } else {
+        toast.error(data.message || 'Failed to delete show')
+      }
+    } catch (error) {
+      console.error('Error deleting show:', error)
+      toast.error(error.message || 'Failed to delete show')
+    }
+  }
+
   useEffect(() => {
     if (user) getAllShows()
   }, [user])
@@ -47,20 +76,22 @@ const ListShows = () => {
               <tr className="bg-primary/10 border-b border-white/10 text-white font-bold text-xs uppercase tracking-wider">
                 <th className="py-4 px-6">Movie Name</th>
                 <th className="py-4 px-6">Showtime</th>
+                <th className="py-4 px-6">Ticket Price</th>
                 <th className="py-4 px-6">Bookings</th>
-                <th className="py-4 px-6">Total Earnings</th>
+                <th className="py-4 px-6">Earnings</th>
+                <th className="py-4 px-6 text-center">Action</th>
               </tr>
             </thead>
 
             <tbody className="divide-y divide-white/5 text-gray-300 font-medium">
               {shows.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-8 text-center text-gray-400 text-sm">
-                    No shows currently added.
+                  <td colSpan={6} className="py-8 text-center text-gray-400 text-sm">
+                    No shows currently scheduled.
                   </td>
                 </tr>
               ) : (
-                shows.map((show, index) => {
+                shows.map((show) => {
                   const occupiedCount = show.occupiedSeats
                     ? Object.keys(show.occupiedSeats).length
                     : 0
@@ -68,7 +99,7 @@ const ListShows = () => {
 
                   return (
                     <tr
-                      key={index}
+                      key={show._id}
                       className="hover:bg-white/[0.04] transition duration-150"
                     >
                       <td className="py-4 px-6 font-bold text-white flex items-center gap-2">
@@ -76,8 +107,12 @@ const ListShows = () => {
                         <span>{show.movie?.title || 'Unknown Movie'}</span>
                       </td>
 
-                      <td className="py-4 px-6 text-gray-300">
+                      <td className="py-4 px-6 text-gray-300 text-xs">
                         {dateFormat(show.showDateTime)}
+                      </td>
+
+                      <td className="py-4 px-6 font-semibold text-white">
+                        {formatPrice(show.showPrice)}
                       </td>
 
                       <td className="py-4 px-6">
@@ -87,7 +122,17 @@ const ListShows = () => {
                       </td>
 
                       <td className="py-4 px-6 font-extrabold text-primary">
-                        {currency}{earnings}
+                        {formatPrice(earnings)}
+                      </td>
+
+                      <td className="py-4 px-6 text-center">
+                        <button
+                          onClick={() => handleDeleteShow(show._id)}
+                          className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition cursor-pointer"
+                          title="Delete Show"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </td>
                     </tr>
                   )

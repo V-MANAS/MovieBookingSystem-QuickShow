@@ -6,9 +6,11 @@ import { Clock, ArrowRight, ShieldCheck, Ticket, Monitor, Info } from 'lucide-re
 import isoTimeFormat from '../lib/isoTimeFormat'
 import BlurCircle from '../components/BlurCircle'
 import toast from 'react-hot-toast'
+import { useClerk } from '@clerk/clerk-react'
 import { useAppContext } from '../context/AppContext'
 
 const SeatLayout = () => {
+  const { openSignIn } = useClerk()
   const groupRows = [
     ["A", "B"],
     ["C", "D"],
@@ -123,7 +125,9 @@ const SeatLayout = () => {
   const bookTickets = async () => {
     try {
       if (!user) {
-        return toast.error('Please login to proceed with booking')
+        toast.error('Please sign in to proceed with booking')
+        openSignIn()
+        return
       }
 
       if (!selectedSeats.length || !selectedTime) {

@@ -3,56 +3,54 @@ import {
   CircleDollarSign,
   PlayCircle,
   Star,
-  Users,
   Film,
 } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
-import { MovieGridSkeleton, TableSkeleton } from '../../components/Skeleton'
+import { TableSkeleton } from '../../components/Skeleton'
 import Title from '../../components/admin/Title'
 import BlurCircle from '../../components/BlurCircle'
 import { dateFormat } from '../../lib/dateFormat'
 import toast from 'react-hot-toast'
 import { useAppContext } from '../../context/AppContext'
+import { formatPrice } from '../../lib/formatPrice'
 
 const Dashboard = () => {
   const { axios, getToken, user, image_base_url } = useAppContext()
-  const currency = import.meta.env.VITE_CURRENCY
 
   const [dashboardData, setDashboardData] = useState({
+    totalMovies: 0,
+    totalShows: 0,
     totalBookings: 0,
     totalRevenue: 0,
     activeShows: [],
-    totalUser: 0,
   })
 
   const [loading, setLoading] = useState(true)
 
   const dashboardCards = [
     {
-      title: 'Total Bookings',
-      value: dashboardData.totalBookings || '0',
-      icon: TrendingUp,
+      title: 'Total Movies',
+      value: dashboardData.totalMovies !== undefined ? dashboardData.totalMovies : (dashboardData.activeShows?.length || 0),
+      icon: Film,
       color: 'from-blue-500/20 to-blue-600/5 text-blue-400 border-blue-500/30',
     },
     {
-      title: 'Total Revenue',
-      value: currency + (dashboardData.totalRevenue || '0'),
-      icon: CircleDollarSign,
-      color: 'from-emerald-500/20 to-emerald-600/5 text-emerald-400 border-emerald-500/30',
-    },
-    {
-      title: 'Active Shows',
-      value: Array.isArray(dashboardData.activeShows)
-        ? dashboardData.activeShows.length
-        : 0,
+      title: 'Total Shows',
+      value: dashboardData.totalShows !== undefined ? dashboardData.totalShows : (dashboardData.activeShows?.length || 0),
       icon: PlayCircle,
       color: 'from-primary/20 to-primary/5 text-primary border-primary/30',
     },
     {
-      title: 'Total Users',
-      value: dashboardData.totalUser || '0',
-      icon: Users,
+      title: 'Total Bookings',
+      value: dashboardData.totalBookings || 0,
+      icon: TrendingUp,
       color: 'from-purple-500/20 to-purple-600/5 text-purple-400 border-purple-500/30',
+    },
+    {
+      title: 'Total Revenue',
+      value: formatPrice(dashboardData.totalRevenue || 0),
+      icon: CircleDollarSign,
+      color: 'from-emerald-500/20 to-emerald-600/5 text-emerald-400 border-emerald-500/30',
     },
   ]
 
@@ -160,7 +158,7 @@ const Dashboard = () => {
                         </h4>
                         <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/10 text-xs">
                           <span className="font-extrabold text-primary text-sm">
-                            {currency}{show.showPrice}
+                            {formatPrice(show.showPrice)}
                           </span>
                           <span className="text-gray-400 font-medium">
                             {dateFormat(show.showDateTime)}

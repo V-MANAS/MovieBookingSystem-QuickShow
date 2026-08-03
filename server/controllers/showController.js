@@ -1,7 +1,6 @@
 import axios from "axios";
 import Movie from "../models/Movie.js";
 import Show from "../models/Show.js";
-import { err } from "inngest/types";
 
 // get now playing movies (recent releases from database)
 export const getNowPlayingMovies = async (req, res) => {
@@ -14,11 +13,10 @@ export const getNowPlayingMovies = async (req, res) => {
   }
 };
 
-
 // add show
 export const addShow = async (req, res) => {
   try {
-    const { movieId, showsInput, showPrice } = req.body;
+    const { movieId, showsInput, showPrice, trailerUrl } = req.body;
 
     if (!movieId || !showsInput || !showPrice) {
       return res.status(400).json({ success: false, message: "Missing fields" });
@@ -26,7 +24,7 @@ export const addShow = async (req, res) => {
 
     let movie = await Movie.findById(movieId);
 
-    // 🔹 Fetch from TMDB if not in DB
+    // 🔹 Fetch from OMDb if not in DB
     if (!movie) {
       try {
         const movieRes = await axios.get(
@@ -53,7 +51,8 @@ export const addShow = async (req, res) => {
           tagline: "",
           vote_average: parseFloat(movieData.imdbRating) || 0,
           runtime: parseInt(movieData.Runtime) || 120,
-          casts: movieData.Actors ? movieData.Actors.split(', ').map(a => ({ name: a, character: "", profile_path: "" })) : []
+          casts: movieData.Actors ? movieData.Actors.split(', ').map(a => ({ name: a, character: "", profile_path: "" })) : [],
+          trailerUrl: trailerUrl || ""
         });
 
       } catch (omdbError) {
@@ -63,6 +62,9 @@ export const addShow = async (req, res) => {
           message: "Failed to fetch movie data from OMDb.",
         });
       }
+    } else if (trailerUrl) {
+      movie.trailerUrl = trailerUrl;
+      await movie.save();
     }
 
     // 🔹 Create shows
@@ -91,17 +93,26 @@ export const addShow = async (req, res) => {
   }
 };
 
+// delete show
+export const deleteShow = async (req, res) => {
+  try {
+    const { showId } = req.params;
+    const deletedShow = await Show.findByIdAndDelete(showId);
+    if (!deletedShow) {
+      return res.status(404).json({ success: false, message: "Show not found" });
+    }
+    res.json({ success: true, message: "Show deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
-
-//api to    get all show from db
+// api to get all show from db
 export const getShows = async (req, res) => {
   try {
-    // Fetch all shows (removed date filter for testing older data)
     const show = await Show.find({}).populate('movie').sort({ showDateTime: 1 });
-
-    //filter unique shows
     const uniqueShows = new Set(show.map(show => show.movie))
-
     res.json({ success: true, shows: Array.from(uniqueShows) })
   } catch (error) {
     console.error(error);
@@ -109,7 +120,7 @@ export const getShows = async (req, res) => {
   }
 }
 
-//api to single show fromdb
+// api to single show from db
 export const getShow = async (req, res) => {
   try {
     const movieId = req.params.movieId;
@@ -121,7 +132,6 @@ export const getShow = async (req, res) => {
 
     const shows = await Show.find({
       movie: movieId
-      // showDateTime: { $gte: new Date() } // Removed filter for testing older data
     });
 
     const dateTime = {};
@@ -134,7 +144,6 @@ export const getShow = async (req, res) => {
       });
     });
 
-    // If no cast stored, fetch from OMDb and persist to DB
     let casts = movie.casts || [];
     if (casts.length === 0 && movieId) {
       try {
@@ -149,7 +158,6 @@ export const getShow = async (req, res) => {
             character: "",
             profile_path: ""
           }));
-          // Save back to DB so next request is fast
           movie.casts = casts;
           await movie.save();
         }
@@ -166,11 +174,9 @@ export const getShow = async (req, res) => {
   }
 };
 
-
 export const getAllMovies = async (req, res) => {
   try {
     const movies = await Movie.find({}).sort({ createdAt: -1 });
-    console.log(movies);
     res.json({ success: true, movies, shows: movies });
   } catch (error) {
     console.error(error);
